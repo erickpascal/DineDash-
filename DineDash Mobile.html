@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DineDash Restaurant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #E63946;
+            --secondary: #F1FAEE;
+            --accent: #A8DADC;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            background-color: #F8F4EE;
+        }
+        .hero-section {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            min-height: 200px;
+        }
+        .menu-item {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .food-category {
+            transition: all 0.2s ease;
+        }
+        .food-category.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .receipt {
+            background: repeating-linear-gradient(
+                #F8F4EE,
+                #F8F4EE 24px,
+                #E63946 25px,
+                #E63946 26px
+            );
+            background-size: 100% 26px;
+        }
+        .table-available {
+            background-color: #A8DADC;
+        }
+        .table-occupied {
+            background-color: #E63946;
+        }
+        .table-reserved {
+            background-color: #F4A261;
+        }
+        .btn {
+            min-width: 44px;
+            min-height: 44px;
+            transition: transform 0.1s ease;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        img {
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="font-sans max-w-md mx-auto relative pb-16">
+    <!-- Header -->
+    <header class="sticky top-0 z-20 bg-white shadow-sm p-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-utensils text-red-500 text-xl"></i>
+                <h1 class="text-xl font-bold">DineDash</h1>
+            </div>
+            <div class="flex space-x-4">
+                <div class="relative" id="cart-btn">
+                    <i class="fas fa-shopping-cart text-gray-500 btn"></i>
+                    <span id="cart-counter" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="content-area" class="p-4 overflow-y-auto" style="max-height: calc(100vh - 130px)">
+        <!-- Screens will load here dynamically -->
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 flex justify-around py-2 z-10">
+        <button class="text-red-500 flex flex-col items-center nav-btn btn" data-screen="home">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-xs mt-1">Home</span>
+        </button>
+        <button class="text-gray-500 flex flex-col items-center nav-btn btn" data-screen="tables">
+            <i class="fas fa-chair text-lg"></i>
+            <span class="text-xs mt-1">Tables</span>
+        </button>
+        <button class="text-gray-500 flex flex-col items-center nav-btn btn" data-screen="menu">
+            <i class="fas fa-utensils text-lg"></i>
+            <span class="text-xs mt-1">Menu</span>
+        </button>
+        <button class="text-gray-500 flex flex-col items-center nav-btn btn" data-screen="account">
+            <i class="fas fa-user text-lg"></i>
+            <span class="text-xs mt-1">Account</span>
+        </button>
+    </nav>
+
+    <script>
+        // Restaurant Data
+        const menuCategories = [
+            {
+                id: "starters",
+                name: "Starters",
+                items: [
+                    { id: 101, name: "Bruschetta", price: 250, description: "Toasted bread with tomatoes, garlic, basil", 
+                      image: "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" },
+                    { id: 102, name: "Calamari", price: 320, description: "Crispy fried squid with aioli", 
+                      image: "https://images.unsplash.com/photo-1551504737-4b85b6cb8cfe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" },
+                    { id: 103, name: "Caprese Salad", price: 280, description: "Mozzarella, tomatoes, basil", 
+                      image: "https://images.unsplash.com/photo-1556911220-bff31c812dba?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" }
+                ]
+            },
+            {
+                id: "mains",
+                name: "Main Courses",
+                items: [
+                    { id: 201, name: "Filet Mignon", price: 850, description: "8oz beef with vegetables", 
+                      image: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" },
+                    { id: 202, name: "Grilled Salmon", price: 720, description: "Atlantic salmon with asparagus", 
+                      image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" },
+                    { id: 203, name: "Mushroom Risotto", price: 450, description: "Creamy arborio rice", 
+                      image: "https://images.unsplash.com/photo-1630910392199-cc61b1e0dbfe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" }
+                ]
+            }
+        ];
+
+        // Table Data
+        const tables = [
+            { id: 1, number: "T1", seats: 2, status: "available" },
+            { id: 2, number: "T2", seats: 4, status: "available" },
+            { id: 3, number: "T3", seats: 4, status: "occupied" },
+            { id: 4, number: "T4", seats: 6, status: "available" },
+            { id: 5, number: "T5", seats: 2, status: "reserved" },
+            { id: 6, number: "T6", seats: 8, status: "available" }
+        ];
+
+        // App State
+        let cart = [];
+        let orders = JSON.parse(localStorage.getItem('dinedash-orders')) || [];
+        let currentOrder = orders.length > 0 ? orders[orders.length-1] : null;
+        let currentCategory = "starters";
+        let currentScreen = "home";
+        let selectedTable = null;
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            renderScreen("home");
+            setupEventListeners();
+        });
+
+        // Render Screens
+        function renderScreen(screen) {
+            currentScreen = screen;
+            let html = "";
+            
+            switch(screen) {
+                case "home":
+                    html = `
+                        <section id="home-screen" class="space-y-4">
+                            <div class="hero-section text-white py-12 px-4 text-center rounded-lg flex flex-col justify-center">
+                                <h2 class="text-2xl font-bold mb-2">Welcome to DineDash</h2>
+                                <p class="text-lg">Fine dining experience</p>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h2 class="text-xl font-bold mb-2">Today's Special</h2>
+                                <div class="flex items-center space-x-4 overflow-x-auto pb-2">
+                                    ${menuCategories.flatMap(c => c.items)
+                                        .filter(item => [101, 203, 202].includes(item.id))
+                                        .map(item => `
+                                        <div class="flex-shrink-0 w-40">
+                                            <img src="${item.image}" alt="${item.name}" class="w-full h-32 object-cover rounded-lg">
+                                            <h3 class="font-medium mt-1">${item.name}</h3>
+                                            <p class="text-red-500 font-bold">${item.price} MT</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h2 class="text-xl font-bold mb-2">Hours</h2>
+                                <div class="space-y-2">
+                                    ${["Monday-Thursday", "Friday-Saturday", "Sunday"].map(day => `
+                                        <div class="flex justify-between">
+                                            <span>${day}</span>
+                                            <span>${day === "Sunday" ? "12:00 - 21:00" : "11:00 - 22:00"}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </section>
+                    `;
+                    break;
+                    
+                case "tables":
+                    html = `
+                        <section id="tables-screen" class="space-y-4">
+                            <h2 class="text-xl font-bold">Available Tables</h2>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                ${tables.map(table => `
+                                    <div class="table-card p-4 rounded-lg shadow-sm text-center 
+                                        ${table.status === 'available' ? 'table-available' : 
+                                          table.status === 'occupied' ? 'table-occupied' : 'table-reserved'}">
+                                        <h3 class="font-bold text-lg">${table.number}</h3>
+                                        <p class="text-sm">${table.seats} seats</p>
+                                        <p class="text-xs mt-1 font-medium">
+                                            ${table.status === 'available' ? 'Available' : 
+                                              table.status === 'occupied' ? 'Occupied' : 'Reserved'}
+                                        </p>
+                                        ${table.status === 'available' ? `
+                                            <button class="select-table-btn mt-2 px-3 py-1 bg-white text-black rounded-full text-sm btn" 
+                                                    data-id="${table.id}">
+                                                Select
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${selectedTable ? `
+                                <div class="bg-white p-4 rounded-lg shadow-sm mt-4">
+                                    <h3 class="font-bold mb-2">Selected Table</h3>
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="font-medium">Table ${tables.find(t => t.id === selectedTable).number}</p>
+                                            <p class="text-sm text-gray-600">${tables.find(t => t.id === selectedTable).seats} seats</p>
+                                        </div>
+                                        <button class="start-order-btn bg-red-500 text-white px-4 py-2 rounded-full text-sm btn">
+                                            Start Order
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </section>
+                    `;
+                    break;
+                    
+                case "menu":
+                    html = `
+                        <section id="menu-screen" class="space-y-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <button id="back-from-menu" class="text-gray-500 btn">
+                                    <i class="fas fa-arrow-left text-lg"></i>
+                                </button>
+                                <h2 class="text-xl font-bold">Our Menu</h2>
+                                <div class="w-8"></div> <!-- Spacer -->
+                            </div>
+                            
+                            <div class="flex overflow-x-auto space-x-2 pb-2" id="category-tabs">
+                                ${menuCategories.map(category => `
+                                    <button class="food-category whitespace-nowrap px-4 py-2 rounded-full border border-gray-200 ${currentCategory === category.id ? 'active bg-red-500 text-white' : 'bg-white'}" 
+                                            data-category="${category.id}">
+                                        ${category.name}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            
+                            <div id="menu-items" class="space-y-3">
+                                ${menuCategories.find(c => c.id === currentCategory).items.map(item => `
+                                    <div class="menu-item bg-white p-3 rounded-lg shadow-sm">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex items-start space-x-3 flex-1">
+                                                <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover">
+                                                <div class="flex-1">
+                                                    <h3 class="font-bold">${item.name}</h3>
+                                                    <p class="text-gray-600 text-sm mt-1">${item.description}</p>
+                                                    <p class="text-red-500 font-bold mt-1">${item.price} MT</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <button class="remove-from-cart-btn bg-gray-200 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center btn" 
+                                                        data-id="${item.id}" 
+                                                        data-name="${item.name}">
+                                                    <i class="fas fa-minus text-xs"></i>
+                                                </button>
+                                                <span class="item-quantity text-sm font-medium" data-id="${item.id}">0</span>
+                                                <button class="add-to-cart-btn bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center btn" 
+                                                        data-id="${item.id}" 
+                                                        data-name="${item.name}" 
+                                                        data-price="${item.price}"
+                                                        data-image="${item.image}">
+                                                    <i class="fas fa-plus text-xs"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${cart.length > 0 ? `
+                                <div class="fixed bottom-16 left-0 right-0 bg-white p-4 border-t border-gray-200 shadow-lg">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="font-medium">${cart.reduce((sum, item) => sum + item.quantity, 0)} items</p>
+                                            <p class="text-red-500 font-bold">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)} MT</p>
+                                        </div>
+                                        <button class="view-cart-btn bg-red-500 text-white px-4 py-2 rounded-full font-medium btn">
+                                            View Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </section>
+                    `;
+                    break;
+                    
+                case "cart":
+                    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    const tax = Math.round(subtotal * 0.15);
+                    const total = subtotal + tax;
+                    
+                    html = `
+                        <section id="cart-screen" class="space-y-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <button id="back-from-cart" class="text-gray-500 btn">
+                                    <i class="fas fa-arrow-left text-lg"></i>
+                                </button>
+                                <h2 class="text-xl font-bold">Your Order</h2>
+                                <div class="w-8"></div> <!-- Spacer -->
+                            </div>
+                            
+                            ${selectedTable ? `
+                                <div class="bg-white p-3 rounded-lg shadow-sm">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-chair text-gray-500"></i>
+                                        <div>
+                                            <p class="font-medium">Table ${tables.find(t => t.id === selectedTable).number}</p>
+                                            <p class="text-sm text-gray-600">${tables.find(t => t.id === selectedTable).seats} seats</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${cart.length === 0 ? `
+                                <div class="text-center py-10 bg-white rounded-lg shadow-sm">
+                                    <i class="fas fa-shopping-cart text-4xl text-gray-300 mb-2"></i>
+                                    <p class="text-gray-500">Your cart is empty</p>
+                                    <button class="mt-4 text-red-500 font-medium btn" id="browse-menu">
+                                        Browse Menu
+                                    </button>
+                                </div>
+                            ` : `
+                                <div id="cart-items" class="space-y-3">
+                                    ${cart.map((item, index) => `
+                                        <div class="bg-white p-3 rounded-lg shadow-sm">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex items-start space-x-3 flex-1">
+                                                    <img src="${item.image}" alt="${item.name}" class="w-14 h-14 object-cover">
+                                                    <div>
+                                                        <h3 class="font-bold">${item.name}</h3>
+                                                        <p class="text-red-500 font-bold">${item.price} MT</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <button class="decrease-quantity bg-gray-200 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center btn" 
+                                                            data-index="${index}">
+                                                        <i class="fas fa-minus text-xs"></i>
+                                                    </button>
+                                                    <span class="quantity mx-1">${item.quantity}</span>
+                                                    <button class="increase-quantity bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center btn" 
+                                                            data-index="${index}">
+                                                        <i class="fas fa-plus text-xs"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="bg-white p-4 rounded-lg shadow-sm">
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span>Subtotal</span>
+                                            <span>${subtotal} MT</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Tax (15%)</span>
+                                            <span>${tax} MT</span>
+                                        </div>
+                                        <div class="border-t border-gray-200 pt-2 mt-2">
+                                            <div class="flex justify-between font-bold">
+                                                <span>Total</span>
+                                                <span>${total} MT</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button id="checkout-btn" class="w-full bg-red-500 text-white py-3 rounded-full font-bold btn">
+                                    Place Order
+                                </button>
+                            `}
+                        </section>
+                    `;
+                    break;
+                    
+                case "checkout":
+                    const orderTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 1.15;
+                    html = `
+                        <section id="checkout-screen" class="space-y-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <button id="back-from-checkout" class="text-gray-500 btn">
+                                    <i class="fas fa-arrow-left text-lg"></i>
+                                </button>
+                                <h2 class="text-xl font-bold">Checkout</h2>
+                                <div class="w-8"></div> <!-- Spacer -->
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 class="font-bold mb-3">Table Information</h3>
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-chair text-gray-500 text-xl"></i>
+                                    <div>
+                                        <p class="font-medium">Table ${tables.find(t => t.id === selectedTable).number}</p>
+                                        <p class="text-sm text-gray-600">${tables.find(t => t.id === selectedTable).seats} seats</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 class="font-bold mb-3">Payment Method</h3>
+                                <div class="space-y-2">
+                                    <button class="payment-method w-full text-left p-3 border border-gray-200 rounded-lg flex items-center" data-method="cash">
+                                        <i class="fas fa-money-bill-wave text-green-500 mr-3 text-xl"></i>
+                                        <div>
+                                            <p class="font-medium">Cash</p>
+                                            <p class="text-gray-500 text-sm">Pay at your table</p>
+                                        </div>
+                                        <i class="fas fa-check-circle ml-auto text-red-500 hidden"></i>
+                                    </button>
+                                    <button class="payment-method w-full text-left p-3 border border-gray-200 rounded-lg flex items-center" data-method="card">
+                                        <i class="fas fa-credit-card text-blue-500 mr-3 text-xl"></i>
+                                        <div>
+                                            <p class="font-medium">Credit Card</p>
+                                            <p class="text-gray-500 text-sm">Pay now with card</p>
+                                        </div>
+                                        <i class="fas fa-check-circle ml-auto text-red-500 hidden"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 class="font-bold mb-3">Special Requests</h3>
+                                <textarea class="w-full p-3 border border-gray-200 rounded-lg" rows="3" placeholder="Allergies, preferences, etc." id="special-requests"></textarea>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 class="font-bold mb-2">Order Summary</h3>
+                                <div class="space-y-2">
+                                    ${cart.map(item => `
+                                        <div class="flex justify-between">
+                                            <span>${item.quantity}x ${item.name}</span>
+                                            <span>${item.price * item.quantity} MT</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="border-t border-gray-200 pt-2 mt-2">
+                                    <div class="flex justify-between">
+                                        <span>Subtotal</span>
+                                        <span>${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)} MT</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Tax (15%)</span>
+                                        <span>${Math.round(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 0.15)} MT</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold mt-2">
+                                        <span>Total</span>
+                                        <span>${Math.round(orderTotal)} MT</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="place-order-btn" class="w-full bg-red-500 text-white py-3 rounded-full font-bold btn">
+                                Confirm Order - ${Math.round(orderTotal)} MT
+                            </button>
+                        </section>
+                    `;
+                    break;
+                    
+                case "receipt":
+                    if (!currentOrder) {
+                        renderScreen("home");
+                        return;
+                    }
+                    
+                    const receiptTotal = currentOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 1.15;
+                    const orderTime = new Date(currentOrder.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    html = `
+                        <section id="receipt-screen" class="space-y-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <button id="back-from-receipt" class="text-gray-500 btn">
+                                    <i class="fas fa-arrow-left text-lg"></i>
+                                </button>
+                                <h2 class="text-xl font-bold">Order Confirmation</h2>
+                                <div class="w-8"></div> <!-- Spacer -->
+                            </div>
+                            
+                            <div class="receipt bg-white p-6 rounded-lg shadow-sm text-center">
+                                <div class="mb-4">
+                                    <h3 class="text-xl font-bold">DineDash Restaurant</h3>
+                                    <p class="text-sm text-gray-600">123 Food Street, Maputo</p>
+                                    <p class="text-sm text-gray-600">+258 84 123 4567</p>
+                                </div>
+                                
+                                <div class="border-t border-b border-gray-300 py-2 my-2">
+                                    <p class="font-medium">Order #${currentOrder.orderNumber}</p>
+                                    <p class="text-sm text-gray-600">${new Date(currentOrder.date).toLocaleDateString()} • ${orderTime}</p>
+                                </div>
+                                
+                                <div class="text-left space-y-2 my-4">
+                                    ${currentOrder.items.map(item => `
+                                        <div class="flex justify-between">
+                                            <span>${item.quantity}x ${item.name}</span>
+                                            <span>${item.price * item.quantity} MT</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="border-t border-b border-gray-300 py-2 my-2 text-left">
+                                    <div class="flex justify-between">
+                                        <span>Subtotal</span>
+                                        <span>${currentOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)} MT</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Tax (15%)</span>
+                                        <span>${Math.round(currentOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 0.15)} MT</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold">
+                                        <span>Total</span>
+                                        <span>${Math.round(receiptTotal)} MT</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 text-left">
+                                    <p class="font-medium">Table: ${currentOrder.tableNumber}</p>
+                                    <p class="font-medium">Payment: ${currentOrder.paymentMethod === 'cash' ? 'Cash' : 'Credit Card'}</p>
+                                    ${currentOrder.specialRequests ? `
+                                        <p class="mt-2 text-sm">
+                                            <span class="font-medium">Requests:</span> 
+                                            ${currentOrder.specialRequests}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="mt-6 pt-4 border-t border-gray-300">
+                                    <p class="text-sm text-gray-600">Thank you for dining with us!</p>
+                                    <p class="text-sm text-gray-600">Your food will be served shortly</p>
+                                </div>
+                            </div>
+                            
+                            <button id="new-order-btn" class="w-full bg-red-500 text-white py-3 rounded-full font-bold btn">
+                                Start New Order
+                            </button>
+                        </section>
+                    `;
+                    break;
+                    
+                case "account":
+                    html = `
+                        <section id="account-screen" class="space-y-4">
+                            <div class="bg-white p-6 rounded-lg shadow-sm text-center">
+                                <div class="w-20 h-20 bg-gray-200 rounded-full overflow-hidden mx-auto mb-4">
+                                    <img src="https://randomuser.me/api/portraits/men/1.jpg" alt="User" class="w-full h-full object-cover">
+                                </div>
+                                <h3 class="font-bold text-lg">João Maputo</h3>
+                                <p class="text-gray-500">+258 84 123 4567</p>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 class="font-bold mb-3">My Orders</h3>
+                                <button class="w-full text-left p-3 border border-gray-200 rounded-lg flex items-center justify-between btn"
+                                        id="view-orders-btn">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-receipt text-red-500 mr-3"></i>
+                                        <span>Order History</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 class="font-bold mb-3">Account Settings</h3>
+                                <div class="space-y-2">
+                                    <button class="w-full text-left p-3 border border-gray-200 rounded-lg flex items-center btn">
+                                        <i class="fas fa-user-edit text-red-500 mr-3"></i>
+                                        <span>Edit Profile</span>
+                                    </button>
+                                    <button class="w-full text-left p-3 border border-gray-200 rounded-lg flex items-center btn">
+                                        <i class="fas fa-bell text-red-500 mr-3"></i>
+                                        <span>Notifications</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full text-left p-3 border border-gray-200 rounded-lg flex items-center btn bg-white">
+                                <i class="fas fa-sign-out-alt text-red-500 mr-3"></i>
+                                <span>Sign Out</span>
+                            </button>
+                        </section>
+                    `;
+                    break;
+            }
+            
+            document.getElementById("content-area").innerHTML = html;
+            updateCartQuantities();
+            setupDynamicEventListeners();
+        }
+
+        // Update cart quantities in menu view
+        function updateCartQuantities() {
+            if (currentScreen === 'menu') {
+                document.querySelectorAll('.item-quantity').forEach(el => {
+                    const itemId = parseInt(el.dataset.id);
+                    const cartItem = cart.find(item => item.id === itemId);
+                    el.textContent = cartItem ? cartItem.quantity : '0';
+                });
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            document.addEventListener("click", function(e) {
+                // Bottom nav buttons
+                if (e.target.classList.contains("nav-btn") || e.target.closest(".nav-btn")) {
+                    const btn = e.target.classList.contains("nav-btn") ? e.target : e.target.closest(".nav-btn");
+                    const screen = btn.dataset.screen;
+                    renderScreen(screen);
+                }
+                
+                // Cart button
+                if (e.target.classList.contains("fa-shopping-cart") || e.target.closest("#cart-btn")) {
+                    if (cart.length > 0) {
+                        renderScreen("cart");
+                    } else {
+                        showNotification("Your cart is empty", "error");
+                    }
+                }
+            });
+        }
+
+        function setupDynamicEventListeners() {
+            // Category tabs
+            document.querySelectorAll(".food-category").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    currentCategory = this.dataset.category;
+                    renderScreen("menu");
+                });
+            });
+            
+            // Add to cart buttons
+            document.querySelectorAll(".add-to-cart-btn").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    if (!selectedTable) {
+                        showNotification("Please select a table first", "error");
+                        renderScreen("tables");
+                        return;
+                    }
+                    
+                    const itemId = parseInt(this.dataset.id);
+                    const itemName = this.dataset.name;
+                    const itemPrice = parseInt(this.dataset.price);
+                    const itemImage = this.dataset.image;
+                    
+                    // Find existing item in cart
+                    let cartItem = cart.find(item => item.id === itemId);
+                    
+                    if (cartItem) {
+                        cartItem.quantity += 1;
+                    } else {
+                        cartItem = {
+                            id: itemId,
+                            name: itemName,
+                            price: itemPrice,
+                            image: itemImage,
+                            quantity: 1
+                        };
+                        cart.push(cartItem);
+                    }
+                    
+                    updateCartCounter();
+                    updateCartQuantities();
+                    showNotification(`${itemName} added to order (${cartItem.quantity}x)`);
+                });
+            });
+            
+            // Remove from cart buttons
+            document.querySelectorAll(".remove-from-cart-btn").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    const itemId = parseInt(this.dataset.id);
+                    const itemName = this.dataset.name;
+                    
+                    // Find item in cart
+                    const cartIndex = cart.findIndex(item => item.id === itemId);
+                    
+                    if (cartIndex !== -1) {
+                        if (cart[cartIndex].quantity > 1) {
+                            cart[cartIndex].quantity -= 1;
+                        } else {
+                            cart.splice(cartIndex, 1);
+                        }
+                        
+                        updateCartCounter();
+                        updateCartQuantities();
+                        showNotification(`${itemName} removed from order`);
+                    }
+                });
+            });
+            
+            // Quantity controls in cart
+            document.querySelectorAll(".increase-quantity").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    const index = parseInt(this.dataset.index);
+                    cart[index].quantity += 1;
+                    renderScreen("cart");
+                    updateCartCounter();
+                });
+            });
+            
+            document.querySelectorAll(".decrease-quantity").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    const index = parseInt(this.dataset.index);
+                    if (cart[index].quantity > 1) {
+                        cart[index].quantity -= 1;
+                        renderScreen("cart");
+                        updateCartCounter();
+                    }
+                });
+            });
+            
+            // Select table
+            document.querySelectorAll(".select-table-btn").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    selectedTable = parseInt(this.dataset.id);
+                    renderScreen("tables");
+                    showNotification(`Table ${tables.find(t => t.id === selectedTable).number} selected`);
+                });
+            });
+            
+            // Start order button
+            document.querySelector(".start-order-btn")?.addEventListener("click", function() {
+                renderScreen("menu");
+            });
+            
+            // View cart button
+            document.querySelector(".view-cart-btn")?.addEventListener("click", function() {
+                renderScreen("cart");
+            });
+            
+            // Back buttons
+            document.getElementById("back-from-cart")?.addEventListener("click", () => renderScreen("menu"));
+            document.getElementById("back-from-checkout")?.addEventListener("click", () => renderScreen("cart"));
+            document.getElementById("back-from-receipt")?.addEventListener("click", () => renderScreen("home"));
+            document.getElementById("back-from-menu")?.addEventListener("click", () => {
+                if (selectedTable) {
+                    renderScreen("tables");
+                } else {
+                    renderScreen("home");
+                }
+            });
+            
+            // Empty cart actions
+            document.getElementById("browse-menu")?.addEventListener("click", () => renderScreen("menu"));
+            document.getElementById("start-ordering")?.addEventListener("click", () => renderScreen("tables"));
+            
+            // Checkout button
+            document.getElementById("checkout-btn")?.addEventListener("click", () => {
+                if (cart.length === 0) return;
+                renderScreen("checkout");
+            });
+            
+            // Payment method selection
+            document.querySelectorAll(".payment-method").forEach(method => {
+                method.addEventListener("click", function() {
+                    document.querySelectorAll(".payment-method").forEach(m => {
+                        m.classList.remove("border-red-500");
+                        m.querySelector(".fa-check-circle").classList.add("hidden");
+                    });
+                    
+                    this.classList.add("border-red-500");
+                    this.querySelector(".fa-check-circle").classList.remove("hidden");
+                });
+            });
+            
+            // Place order button
+            document.getElementById("place-order-btn")?.addEventListener("click", () => {
+                const paymentMethod = document.querySelector(".payment-method.border-red-500")?.dataset.method;
+                const specialRequests = document.getElementById("special-requests").value;
+                
+                if (!paymentMethod) {
+                    showNotification("Please select a payment method", "error");
+                    return;
+                }
+                
+                // Create new order
+                const newOrder = {
+                    orderNumber: "DD" + Math.floor(1000 + Math.random() * 9000),
+                    items: [...cart],
+                    tableNumber: tables.find(t => t.id === selectedTable).number,
+                    paymentMethod: paymentMethod,
+                    specialRequests: specialRequests,
+                    date: new Date().toISOString(),
+                    status: "preparing"
+                };
+                
+                // Save order
+                orders.push(newOrder);
+                localStorage.setItem('dinedash-orders', JSON.stringify(orders));
+                currentOrder = newOrder;
+                
+                // Mark table as occupied
+                tables.find(t => t.id === selectedTable).status = "occupied";
+                selectedTable = null;
+                
+                // Clear cart
+                cart = [];
+                updateCartCounter();
+                
+                // Show receipt
+                renderScreen("receipt");
+            });
+            
+            // New order button
+            document.getElementById("new-order-btn")?.addEventListener("click", () => {
+                renderScreen("tables");
+            });
+            
+            // View orders button
+            document.getElementById("view-orders-btn")?.addEventListener("click", () => {
+                renderScreen("orders");
+            });
+        }
+
+        // Update cart counter
+        function updateCartCounter() {
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const counter = document.getElementById("cart-counter");
+            counter.textContent = count;
+            counter.classList.toggle("hidden", count === 0);
+        }
+
+        // Show notification
+        function showNotification(message, type = "success") {
+            const notification = document.createElement("div");
+            notification.className = `fixed top-4 left-1/2 transform -translate-x-1/2 ${
+                type === "success" ? "bg-green-500" : "bg-red-500"
+            } text-white px-4 py-2 rounded-lg shadow-lg text-sm`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transition = "opacity 0.3s ease";
+                notification.style.opacity = "0";
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
